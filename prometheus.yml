@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: "dhv-consumer"
+    static_configs:
+      - targets: ["dhv:8000"]  # <-- matches the service name in docker-compose

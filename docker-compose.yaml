@@ -1,4 +1,7 @@
+version: "3.9"
+
 services:
+  # ---------------- Zookeeper ---------------- #
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
     environment:
@@ -6,19 +9,20 @@ services:
     ports:
       - "2181:2181"
 
-
+  # ---------------- Kafka ---------------- #
   kafka:
-     image: confluentinc/cp-kafka:7.6.1
-     depends_on:
+    image: confluentinc/cp-kafka:7.6.1
+    depends_on:
       - zookeeper
-     ports:
+    ports:
       - "9092:9092"
-     environment:
+    environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
+  # ---------------- Mock Service ---------------- #
   mock-service:
     build: ./mock-service
     depends_on:
@@ -27,8 +31,32 @@ services:
       - "5000:5000"
     command: sh -c "sleep 20 && uvicorn app:app --host 0.0.0.0 --port 5000"
 
+  # ---------------- DHV Consumer ---------------- #
   dhv:
     build: ./dhv
     depends_on:
       - kafka
+    ports:
+      - "8000:8000"   # Prometheus metrics
     command: sh -c "sleep 20 && python -u consumer.py"
+
+  # ---------------- Prometheus ---------------- #
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - dhv
+
+  # ---------------- Grafana ---------------- #
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    depends_on:
+      - prometheus
