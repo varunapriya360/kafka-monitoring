@@ -1,0 +1,11 @@
+dashboard:
+  title: Homework Metrics
+  panels:
+    - title: CPU Usage
+      type: line
+      datasource: Prometheus
+      targets:
+        - expr: 'my_cpu'
+          legendFormat: '{{vm_name}}'
+      xaxis: time
+      yaxis: value

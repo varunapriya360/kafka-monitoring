@@ -1,0 +1,8 @@
+dataset_homework:
+  name: my_vm_metrics
+  frequency: 60
+  url: http://localhost:5000/webhook
+  collection: vm_stats
+  report:
+    cpu: float
+    memory: float

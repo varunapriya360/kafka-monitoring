@@ -1,0 +1,10 @@
+dataset_name: homework
+frequency: 10       # every 10s
+fields:
+  - name: cpu
+    type: float
+  - name: threads
+    type: int
+  - name: vm_name
+    type: string
+webhook_url: http://localhost:8083/topics/mock_data_homework
