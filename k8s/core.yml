@@ -1,0 +1,94 @@
+# ============================================================
+# ---------------- Persistent Volume Claim -------------------
+# ============================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kafka-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+
+# ============================================================
+# ---------------- Kafka (Redpanda) --------------------------
+# ============================================================
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      containers:
+        - name: redpanda
+          image: redpandadata/redpanda:latest
+          args:
+            - start
+            - --overprovisioned
+            - --smp=1
+            - --memory=512M
+            - --reserve-memory=0M
+            - --node-id=0
+            - --check=false
+            - --kafka-addr=PLAINTEXT://0.0.0.0:9092
+            - --advertise-kafka-addr=PLAINTEXT://kafka:9092
+          ports:
+            - containerPort: 9092
+          resources:
+            requests:
+              cpu: "300m"
+              memory: "512Mi"
+            limits:
+              cpu: "800m"
+              memory: "1Gi"
+          volumeMounts:
+            - name: redpanda-data
+              mountPath: /var/lib/redpanda/data
+
+          # ---------- Health Checks ----------
+          readinessProbe:
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 5
+
+          livenessProbe:
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            failureThreshold: 5
+
+      volumes:
+        - name: redpanda-data
+          persistentVolumeClaim:
+            claimName: kafka-pvc
+
+# ============================================================
+# ---------------- Kafka Service -----------------------------
+# ============================================================
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+spec:
+  type: ClusterIP
+  selector:
+    app: kafka
+  ports:
+    - name: kafka
+      port: 9092
+      targetPort: 9092

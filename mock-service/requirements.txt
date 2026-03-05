@@ -3,3 +3,5 @@ uvicorn
 pyyaml
 requests
 kafka-python
+prometheus-fastapi-instrumentator
+prometheus-client
