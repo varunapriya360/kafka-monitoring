@@ -41,7 +41,7 @@ jobs:
     # 5️⃣ Build Docker image (use prebuilt FastAPI image for speed)
     - name: Build Docker image
       run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/mock-service:latest .
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/mock-service:latest ./mock-service
 
     # 6️⃣ Push image to Docker Hub
     - name: Push Docker image
