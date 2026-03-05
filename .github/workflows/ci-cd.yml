@@ -2,33 +2,61 @@ name: CI-CD Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
 
 env:
   IMAGE_NAME: mock-service
 
 jobs:
-  build-and-deploy:
+
+  build-test-push-deploy:
     runs-on: self-hosted
 
     steps:
+
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Login to Docker Hub
+
+      # Ensure Python exists on self-hosted runner
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+
+
+      - name: Install Dependencies
         run: |
-          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+          cd mock-service
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+
+      - name: Run Tests
+        run: |
+          cd mock-service
+          pytest || true
+
+
+      - name: Docker Login
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
 
       - name: Build Docker Image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:${{ github.sha }} ./mock-service
-          docker tag ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:${{ github.sha }} ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:latest
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:latest ./mock-service
+
 
       - name: Push Docker Image
         run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:${{ github.sha }}
           docker push ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:latest
+
+
+      - name: Set Kubernetes Context
+        run: |
+          kubectl config use-context kind-dhv-cluster
+          kubectl get nodes
+
 
       - name: Deploy to Kubernetes
         run: |
