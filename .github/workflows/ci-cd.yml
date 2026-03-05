@@ -52,7 +52,7 @@ jobs:
     - name: Set up K8s context
       uses: azure/setup-kubectl@v3
       with:
-        version: '1.28.0'
+        version: 'latest'
     - name: Deploy to cluster
       run: |
         kubectl set image deployment/mock-service mock-service=${{ secrets.DOCKER_USERNAME }}/mock-service:latest
