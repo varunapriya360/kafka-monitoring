@@ -1,179 +1,214 @@
-Event-Driven System Monitoring Pipeline
-A cloud-native event-driven system that simulates infrastructure metrics, streams them through Kafka, processes them via a consumer service, and exposes observability using Prometheus and Grafana on Kubernetes.
-This project demonstrates a real microservices architecture with message streaming, containerization, Kubernetes orchestration, and monitoring.
+Event-Driven Monitoring Pipeline on Kubernetes
+A lightweight event-driven monitoring pipeline built using FastAPI, Apache Kafka, Prometheus, and Grafana, deployed on Kubernetes.
+This project simulates infrastructure metrics (CPU & memory usage), streams them through Kafka, processes them with a consumer service, and exposes metrics for Prometheus scraping and Grafana visualization.
+The goal of this project is to demonstrate how event-driven microservices and observability tools integrate in a Kubernetes environment.
 
 Architecture Overview
-The system consists of the following components:
-Mock Producer Service
-Generates simulated CPU and memory metrics.
-Publishes messages to a Kafka topic every few seconds.
-Apache Kafka
-Acts as the event streaming platform.
-Handles message ingestion from producers and delivery to consumers.
-Consumer Service
-Reads messages from the Kafka topic.
-Processes and logs incoming metric events.
-Prometheus
-Scrapes application metrics from services.
-Grafana
-Visualizes metrics through dashboards.
-Kubernetes
-Manages container deployment, scaling, and networking.
+           +------------------+
+            |  Mock Producer   |
+            |  (FastAPI App)   |
+            +--------+---------+
+                     |
+                     | Kafka Events
+                     v
+               +------------+
+               |   Kafka    |
+               |  Topic     |
+               +-----+------+
+                     |
+                     v
+             +---------------+
+             | Consumer App  |
+             | (DHV Service) |
+             +-------+-------+
+                     |
+                     | Metrics
+                     v
+             +---------------+
+             |  Prometheus   |
+             |  Scrapes Data |
+             +-------+-------+
+                     |
+                     v
+                +---------+
+                | Grafana |
+                |Dashboard|
+                +---------+
 
-System Flow
-Mock service generates CPU and memory usage data.
-Data is published to a Kafka topic.
-Consumer service reads events from Kafka.
-Prometheus scrapes service metrics.
-Grafana visualizes system metrics through dashboards.
 
 Tech Stack
-Python (FastAPI) – API service
-Apache Kafka – Event streaming platform
-Docker – Containerization
-Kubernetes – Container orchestration
-Prometheus – Metrics collection
-Grafana – Monitoring dashboards
+FastAPI – mock producer service
+Apache Kafka – event streaming
+Python Kafka Client – producer & consumer
+Prometheus – metrics scraping
+Grafana – monitoring dashboards
+Docker – containerization
+Kubernetes – orchestration
 
-Project Structure
-
-
-Mock Service
-The mock service simulates system metrics and sends them to Kafka.
-Metrics generated:
-CPU Usage
-Memory Usage
-Sample message:
+Project Components
+1️⃣ Mock Producer Service
+A FastAPI application that generates synthetic system metrics.
+Every few seconds it publishes:
 {
-  "cpu": 54.21,
-  "memory": 63.47
+  "cpu": 64.3,
+  "memory": 45.7
 }
 
-Messages are sent to the Kafka topic:
+to a Kafka topic.
+It also exposes a /metrics endpoint for Prometheus.
+
+2️⃣ Apache Kafka
+Kafka acts as the event streaming platform.
+The producer sends data to the topic:
 mock_data_homework
 
+Kafka ensures:
+decoupled services
+reliable message delivery
+scalable streaming pipeline
 
-FastAPI Service
-The service exposes two endpoints.
-Root Endpoint
-GET /
+3️⃣ Consumer Service
+The consumer reads messages from Kafka and processes them.
+This simulates a downstream processing system that could:
+analyze metrics
+trigger alerts
+store metrics
 
-Response
-{
- "status": "Mock Service Running"
-}
-
-Metrics Endpoint
-GET /metrics
-
-This endpoint exposes Prometheus metrics.
-
-Kubernetes Deployment
-The service runs inside a Kubernetes cluster.
-Deployment Features
-Containerized FastAPI application
-Resource limits and requests
-Liveness probe
-Readiness probe
-Environment variables via ConfigMap
-
-Kafka Integration
-Kafka is used as the event streaming platform.
-Producer configuration:
-bootstrap_servers="kafka:9092"
-
-Topic used:
-mock_data_homework
-
-Data is generated every 5 seconds and published to the topic.
-
-Monitoring Setup
-Prometheus
-Prometheus scrapes metrics exposed by the FastAPI service.
-Metrics endpoint:
+4️⃣ Prometheus
+Prometheus periodically scrapes the producer’s:
 /metrics
 
-Example metric:
-http_requests_total
+endpoint.
+These metrics include:
+HTTP request metrics
+application performance metrics
+custom service metrics
 
-Prometheus collects metrics from the Kubernetes service endpoints.
-
-Grafana
-Grafana is used to visualize metrics.
+5️⃣ Grafana
+Grafana connects to Prometheus and visualizes the metrics through dashboards.
 Example dashboards include:
-Request rate
-Service health
-CPU usage simulation
-Memory usage simulation
-Grafana connects to Prometheus as a data source.
+CPU usage
+memory usage
+request latency
+service health
+
+Kubernetes Deployment
+All services are deployed inside a Kubernetes cluster.
+
+Kubernetes manages:
+container orchestration
+pod lifecycle
+health checks
+resource allocation
+
+Example configuration includes:
+readiness probes
+liveness probes
+resource limits
+service networking
+
+Observability Flow
+FastAPI Service
+      │
+      │ exposes
+      ▼
+   /metrics
+      │
+      ▼
+Prometheus Scrapes Metrics
+      │
+      ▼
+Grafana Visualizes Data
+
 
 Running the Project
-1 Clone the Repository
-git clone <repo-url>
-cd mock-service
+1️⃣ Build the Docker Image
+docker build -t mock-service .
 
 
-2 Build Docker Image
-docker build -t varunapriya/mock-service:latest .
-
-
-3 Push Image
+2️⃣ Push Image to DockerHub
+docker tag mock-service varunapriya/mock-service:latest
 docker push varunapriya/mock-service:latest
 
 
-4 Deploy to Kubernetes
+3️⃣ Deploy to Kubernetes
 kubectl apply -f deployment.yaml
 
 
-5 Verify Pods
+4️⃣ Verify Pods
 kubectl get pods
 
 
-6 Check Logs
-kubectl logs <pod-name>
+Kafka UI
+Kafka UI is used to inspect topics and message streams.
+Example:
+topic: mock_data_homework
+message stream of CPU and memory data
+(Add screenshot here)
 
+Prometheus Targets
+Prometheus automatically scrapes the mock service metrics.
+Example target:
+mock-service:5000/metrics
+
+(Added screenshot in /images folder)
+
+Grafana Dashboard
+Grafana visualizes metrics collected by Prometheus.
+Example panels:
+CPU usage
+memory usage
+request latency
+(Added screenshot in /images folder)
 
 Troubleshooting
-Issue 1 – Old Docker Image Being Used
-Problem
-Kubernetes continued using an older image even after code changes.
-Cause
-Docker image was rebuilt locally but not pushed to DockerHub.
-Solution
-Rebuild and push the image.
-docker build --no-cache -t varunapriya/mock-service:latest .
+Prometheus Not Scraping Metrics
+Issue:
+HTTP 404 on /metrics
+
+Cause:
+The FastAPI service did not expose the metrics endpoint.
+Solution:
+Added:
+from prometheus_fastapi_instrumentator import Instrumentator
+Instrumentator().instrument(app).expose(app)
+
+
+Kubernetes Using Old Docker Image
+
+Issue:
+Pod continued using outdated image.
+
+Cause:
+Kubernetes cached the previous image.
+
+Solution:
+Rebuilt and pushed a new image, then restarted the deployment.
+docker build -t varunapriya/mock-service:latest .
 docker push varunapriya/mock-service:latest
 kubectl rollout restart deployment mock-service
 
 
-Issue 2 – CrashLoopBackOff
-Problem
-The application failed during startup.
+CrashLoopBackOff After Metrics Integration
+
+Issue:
+Application failed during startup.
+
 Error:
 RuntimeError: Cannot add middleware after an application has started
 
-Cause
-Prometheus instrumentation middleware was added inside the startup event.
-Solution
-Move instrumentation outside the startup function.
-Correct implementation:
-Instrumentator().instrument(app).expose(app)
+Cause:
+Prometheus instrumentation was added during the FastAPI startup event.
 
+Solution:
+Move instrumentation outside the startup function so it runs before the application starts.
 
-Issue 3 – Deployment Pulling Wrong Image
-Problem
-Deployment referenced an incorrect or outdated image.
-Solution
-Verify the image in the deployment configuration.
-kubectl get deployment mock-service -o yaml | grep image
-
-
-Observability
-The project demonstrates how to monitor containerized applications using:
-Prometheus metrics scraping
-Grafana dashboards
-Kubernetes health probes
-
-
+Future Improvements
+Potential enhancements:
+Kafka consumer autoscaling
+Prometheus alerting rules
+Kubernetes Horizontal Pod Autoscaler
+Persistent storage for metrics
+distributed tracing with Jaeger
 
 
